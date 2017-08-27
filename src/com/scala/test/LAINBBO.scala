@@ -2,16 +2,31 @@ package com.scala.test
 
 class LAINBBO(config: Config) {
   
+  var population = new Population(config);
+  
+  
+  def hrLine = {
+      var outLine: String = "-";
+      for( i <- 0 to 99 ){
+        outLine += "-";
+      }
+      println(outLine);
+    }
+    
+    def show(genIndex: Int) = {
+      hrLine//------------------------------------
+      println(">> Generation "+genIndex);
+      population.show;  println();
+    }
+  
   def start = {
-    var population = new Population(config);
+    
     for( genIndex <- 0 to config.generation )
     {
       population.cost;
       population.listSort;
       population.getAvgCost;
-      hrLine//------------------------------------
-      println(">> Generation "+genIndex);
-      population.show;  println();
+      this.show(genIndex);
       population.keepElite;
       
       population.modify(genIndex);
@@ -24,12 +39,7 @@ class LAINBBO(config: Config) {
     population.listSort;
     
      
-    def hrLine = {
-      var outLine: String = "-";
-      for( i <- 0 to 99 ){
-        outLine += "-";
-      }
-      println(outLine);}
+    
     
   }//end start
   
