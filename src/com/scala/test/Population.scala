@@ -2,22 +2,33 @@ package com.scala.test
 import java.lang.Math
 
 
+class Factor( var value: Double ) {
+  
+  //var link = new Link(fromIndex,toIndex,value);
+  
+}
+
+
+
 class Individual(config: Config) extends Comparable {
   var length = config.chromLength;
-  var chrom = new Array[Double](length)
+  var chrom = new Array[Factor](length)
   var cost: Double = 0.0
   this.init
 
   def init = {
-   for( i <- 0 to (this.length-1) ){
-     this.chrom(i) = (new util.Random).nextFloat() * config.chromPerElemRange(1);
-   }
+    var counter = 0;
+    for( i <- 0 to length-1 ){
+        var randomNumber = (new util.Random).nextDouble() * config.chromPerElemRange(1);
+        this.chrom(i) = new Factor(randomNumber);
+    }
+    //println(counter);
    
   }//init
   
   def show = {
     for( i <- 0 to (this.length-1) ){
-      printf("%.4f\t", this.chrom(i));
+      printf("%.4f\t", this.chrom(i).value);
     }
     
   }
@@ -45,7 +56,9 @@ class Population(config: Config) {
   private var lambda = new Array[Float](this.size);
   private var mu = new Array[Float](this.size);
   
-  private var avgCost = 0f;
+  private var avgCost: Double = 0.0;
+  private var minCost: Double = 0.0;
+  private var maxCost: Double = 0.0;
   this.init
   
   
@@ -82,14 +95,14 @@ class Population(config: Config) {
     
     for( listIndex <- 0 to this.size-1 )
     {
-      var randomNumber = (new util.Random).nextFloat();
+      var randomNumber = (new util.Random).nextDouble();
       if( randomNumber <= config.probability_modify ){
         var lambdaScale = ( lambda(listIndex) - lambda.min ) / 
                                               ( lambda.max - lambda.min );
         for( chromIndex <- 0 to config.chromLength-1 ){
           if( (new util.Random).nextFloat() < lambdaScale )
           {
-            randomNumber = (new util.Random).nextFloat() * mu.sum;
+            randomNumber = (new util.Random).nextDouble() * mu.sum;
             var select = mu(1);
             var selectIndex = 1;
             while( (randomNumber > select) && (selectIndex < this.size-1) )
@@ -97,9 +110,9 @@ class Population(config: Config) {
               selectIndex = selectIndex + 1;
               select = select + mu(selectIndex);
             }
-            island(listIndex).chrom(chromIndex) = 
-                    ( 0f+genIndex/config.generation ) * list(listIndex).chrom(chromIndex) + 
-                    (1f-genIndex/config.generation) * list(selectIndex).chrom(chromIndex);
+            island(listIndex).chrom(chromIndex).value = 
+                    ( 0.0+genIndex.toDouble/config.generation ) * list(listIndex).chrom(chromIndex).value + 
+                    (1.0-genIndex.toDouble/config.generation) * list(selectIndex).chrom(chromIndex).value;
             
           }//end if lambdaScale
         }//end for chromIndex
@@ -109,18 +122,19 @@ class Population(config: Config) {
   }
   
   def mutate = {
+    this.cost;
     this.listSort;
     for( listIndex <- 0 to this.size-1 ){
       for( chromIndex <- 0 to config.chromLength-1 ){
         if( (new util.Random).nextFloat() < config.probability_mutate ){
-          var randomNum1 = (new util.Random).nextFloat();
-          var randomNum2 = (new util.Random).nextFloat();
+          var randomNum1 = (new util.Random).nextDouble();
+          var randomNum2 = (new util.Random).nextDouble();
           
-          island(listIndex).chrom(chromIndex) = 
-						list(listIndex).chrom(chromIndex) + config.F *
-						( list(1).chrom(chromIndex) - list(listIndex).chrom(chromIndex) ) + config.F*
-						( list( (randomNum1*config.populationSize).toInt ).chrom(chromIndex) -
-							list( (randomNum2*config.populationSize).toInt ).chrom(chromIndex) );
+          island(listIndex).chrom(chromIndex).value = 
+						list(listIndex).chrom(chromIndex).value + config.K(0) *
+						( list(1).chrom(chromIndex).value - list(listIndex).chrom(chromIndex).value ) + config.K(0)*
+						( list( (randomNum1*config.populationSize).toInt ).chrom(chromIndex).value -
+							list( (randomNum2*config.populationSize).toInt ).chrom(chromIndex).value );
           
         }//end if mutate
       }//end for chromIndex
@@ -136,13 +150,31 @@ class Population(config: Config) {
     }
     
     this.feasible;
+    this.cost;
+    this.listSort;
+    this.calculateCost;
+    
+    var randomIndex = (new util.Random).nextInt(config.populationSize);
+    if( list(randomIndex).cost >= avgCost ){
+      config.probability_modify = config.K(1)*(maxCost-list(randomIndex).cost)/(maxCost-avgCost);
+      config.probability_mutate = config.K(3)*(maxCost-maxCost-list(randomIndex).cost)/(maxCost-avgCost);
+    }else{
+      config.probability_modify = config.K(2);
+      config.probability_mutate = config.K(4);
+    }
     
   }
   
-  def getAvgCost = {
-    this.avgCost = 0f;
+  def calculateCost = {
+    this.avgCost = 0.0;  this.minCost = list(0).cost;  this.maxCost = list(0).cost;
+
     for( listIndex <- 0 to this.size-1 ){
-      this.avgCost = this.avgCost + this.list(listIndex).cost.toFloat;
+      this.avgCost = this.avgCost + this.list(listIndex).cost.toDouble;
+      if( list(listIndex).cost < minCost ){
+        minCost = list(listIndex).cost;
+      }else if( list(listIndex).cost > maxCost ){
+        maxCost = list(listIndex).cost;
+      }
     }
     this.avgCost = this.avgCost / this.size;
   }
@@ -150,7 +182,8 @@ class Population(config: Config) {
   
   def show = {
     this.list(0).show;
-    printf(">avgCost: %.4f",this.avgCost);
+    printf("\n->avgCost: %.4f",this.avgCost);
+    printf("\n->bestCost: %.4f",list(0).cost);
   }
   
   def listShow = {
