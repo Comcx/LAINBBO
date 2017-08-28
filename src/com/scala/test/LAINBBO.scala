@@ -25,7 +25,7 @@ class LAINBBO(config: Config) {
     {
       population.cost;
       population.listSort;
-      population.getAvgCost;
+      population.calculateCost;
       this.show(genIndex);
       population.keepElite;
       
